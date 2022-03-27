@@ -37,7 +37,7 @@ def setup_args():
     )
     parser.add_argument(
         "--stride", dest="stride", action="store", nargs="?", 
-        default=1, type=int, help="which block num to end with"
+        default=-11, type=int, help="how many blocks to run on, default run on all blocks [start_num:]"
     )
     return parser.parse_args()
 
@@ -46,7 +46,12 @@ if __name__ == '__main__':
 
     args = setup_args()
 
-    path = os.path.join("project_files", args.name, f"{args.name}_{args.start_num}_{args.stride}")
+    if args.stride != -1:
+        path = os.path.join("project_files", args.name, f"{args.name}_{args.start_num}_{args.stride}")
+        files = sorted(glob.glob(f"unitaries/{args.name}/*.unitary")[args.start_num:args.start_num + args.stride])
+    else:
+        path = os.path.join("project_files", args.name, f"{args.name}_{args.start_num}")
+        files = sorted(glob.glob(f"unitaries/{args.name}/*.unitary")[args.start_num:])
 
     p = qsearch.Project(path)
 
@@ -58,8 +63,6 @@ if __name__ == '__main__':
     p["min_depth"] = 4
     p["compiler_class"] = leap_compiler.LeapCompiler
     p["verbosity"] = 1
-
-    files = sorted(glob.glob(f"unitaries/{args.name}/*.unitary")[args.start_num:args.start_num + args.stride])
 
     for name, gateset in demo_gatesets:
         for f in files:
