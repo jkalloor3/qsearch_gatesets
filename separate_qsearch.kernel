@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH -q regular
+#SBATCH -t 0:09:00
+#SBATCH -A m2938_g
+#SBATCH -C gpu
+#SBATCH -n 1
+#SBATCH --ntasks-per-node=1
+#SBATCH -c 128
+#SBATCH --gpus-per-task=1
+#SBATCH -J bs5
+
+cd alternative_gatesets
+load module python
+source activate bqskit
+
+srun -n 1 -N 1 -c 128 python main.py --folder_name $1 --start_num $SLURM_ARRAY_TASK_ID --stride 1
+
+conda deactivate
