@@ -4,7 +4,7 @@ import argparse
 
 from bqskit.ir import Circuit
 
-
+import pathlib
 
 from extra_gatesets import *
 import qsearch
@@ -19,6 +19,12 @@ import glob
 # Enable logging
 import logging
 logging.getLogger('bqskit').setLevel(logging.INFO) 
+
+import sys
+
+def my_print(text):
+    sys.stdout.write(str(text))
+    sys.stdout.flush()
 
 def setup_args():
         # Run setup
@@ -37,7 +43,11 @@ def setup_args():
     )
     parser.add_argument(
         "--stride", dest="stride", action="store", nargs="?", 
-        default=-11, type=int, help="how many blocks to run on, default run on all blocks [start_num:]"
+        default=-1, type=int, help="how many blocks to run on, default run on all blocks [start_num:]"
+    )
+    parser.add_argument(
+        "--gates", dest="gates", action="store", 
+        default="ISWAP,CNOT,sqrt(ISWAP),sqrt(CNOT)", type=str, help="Which gates to use as a comma separated list"
     )
     return parser.parse_args()
 
@@ -53,8 +63,8 @@ if __name__ == '__main__':
         path = os.path.join("project_files", args.name, f"{args.name}_{args.start_num}")
         files = sorted(glob.glob(f"unitaries/{args.name}/*.unitary")[args.start_num:])
 
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
     p = qsearch.Project(path)
-
     p.clear()
     p["solver"] = multistart_solvers.NaiveMultiStart_Solver(16)
     p["inner_solver"] = qsearch.solvers.LeastSquares_Jac_SolverNative()
@@ -64,11 +74,20 @@ if __name__ == '__main__':
     p["compiler_class"] = leap_compiler.LeapCompiler
     p["verbosity"] = 1
 
-    for name, gateset in demo_gatesets:
-        for f in files:
-            bench_name = os.path.basename(f).split(".")[0]
-            with open(f, "rb") as unit_file:
-                bench = pickle.load(unit_file)
-            p.add_compilation(f"{name}-{bench_name}", bench.numpy, gateset=gateset, verbosity=0)
+    accepted_gatesets = args.gates.split(",")
 
+    print("Here")
+    print(len(files))
+    print(len(demo_gatesets))
+    for name, gateset in demo_gatesets:
+        if name in accepted_gatesets:
+            my_print("|")
+            for f in files:
+                my_print(".")
+                bench_name = os.path.basename(f).split(".")[0]
+                with open(f, "rb") as unit_file:
+                    bench = pickle.load(unit_file)
+                p.add_compilation(f"{name}-{bench_name}", bench.numpy, gateset=gateset, verbosity=0)
+
+    print(p.compilations)
     p.run()
